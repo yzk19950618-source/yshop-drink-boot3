@@ -38,6 +38,12 @@ spring:
       password: ~ # YAML null：免密；有密码时用 SPRING_DATA_REDIS_PASSWORD 或非空 REDIS_PASSWORD 覆盖
 
 yshop:
+  # 云上 Redis（跨 VPC 等）：减轻 XREADGROUP BLOCK 空闲断连导致的 WriteRedisConnectionException / ClosedChannel
+  cloud:
+    redisson:
+      netty-threads: 32 # 可被环境变量 YSHOP_CLOUD_REDISSON_NETTY_THREADS 等覆盖（Spring 松散绑定）
+      ping-connection-interval-ms: 15000 # 定时 PING（毫秒）；不配或 ≤0 则跳过
+
   security:
     mock-enable: ${YSHOP_SECURITY_MOCK_ENABLE:false}
   pay:
