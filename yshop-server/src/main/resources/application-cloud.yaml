@@ -9,6 +9,10 @@
 #    SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_USERNAME=root
 #    SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_PASSWORD=你的密码
 #    从库与主库相同时可再设 SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SLAVE_URL（及 USERNAME/PASSWORD）或保持 slave lazy + 与主库相同的 MYSQL_*
+#
+# Redis：勿写 password: ${REDIS_PASSWORD:}（无变量时空串会触发 Redisson AUTH，免密实例报错）。
+# 免密：不配置 REDIS_PASSWORD / SPRING_DATA_REDIS_PASSWORD。
+# 有密：环境变量 SPRING_DATA_REDIS_PASSWORD，或非空的 REDIS_PASSWORD（由 RedisPasswordEnvironmentPostProcessor 注入）。
 
 server:
   port: ${PORT:8080}
@@ -31,7 +35,6 @@ spring:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
       database: ${REDIS_DATABASE:0}
-      password: ${REDIS_PASSWORD:}
 
 yshop:
   security:
