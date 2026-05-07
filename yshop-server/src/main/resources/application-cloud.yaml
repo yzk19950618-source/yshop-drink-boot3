@@ -1,9 +1,17 @@
 # 容器 / 微信云托管：与 local 组合使用（SPRING_PROFILES_ACTIVE=local,cloud）
-# 端口：云托管注入 PORT；本地容器未注入时回落到 48081
+# 端口：云托管注入 PORT；未注入时与常见服务端口 8080 一致
 # 中间件：通过环境变量指向云数据库、云 Redis（勿在仓库中写死生产密码）
+#
+# 若日志里 JDBC 仍是 127.0.0.1:3306，说明 cloud 未生效或 MYSQL_* 未进容器。可二选一：
+# A) 确认激活 profile：SPRING_PROFILES_ACTIVE=local,cloud（注意逗号；部分控制台需加引号）
+# B) 不依赖 cloud，直接用 Spring Boot 环境变量覆盖主库（与 profile 无关，优先级更高）：
+#    SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL=jdbc:mysql://主机:端口/库名?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8
+#    SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_USERNAME=root
+#    SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_PASSWORD=你的密码
+#    从库与主库相同时可再设 SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SLAVE_URL（及 USERNAME/PASSWORD）或保持 slave lazy + 与主库相同的 MYSQL_*
 
 server:
-  port: ${PORT:48081}
+  port: ${PORT:8080}
 
 spring:
   datasource:

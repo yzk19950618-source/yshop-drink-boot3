@@ -2,8 +2,10 @@
 # 构建：在 yshop-drink-boot3 仓库根目录执行 docker build -t yshop-server .
 # 云托管：构建目录选仓库根；容器端口与「服务设置」中的监听端口一致（默认常用 8080，平台会注入 PORT）
 #
-# 必配环境变量（示例）：MYSQL_HOST、MYSQL_DATABASE、MYSQL_USERNAME、MYSQL_PASSWORD、REDIS_HOST
-# 可选：MYSQL_PORT、REDIS_PORT、REDIS_PASSWORD、SPRING_PROFILES_ACTIVE（默认 local,cloud）
+# 必配（二选一）：
+#   ① cloud 生效时：MYSQL_HOST、MYSQL_PORT、MYSQL_DATABASE、MYSQL_USERNAME、MYSQL_PASSWORD、REDIS_HOST
+#   ② cloud 未生效时：用 Spring 标准变量覆盖主库（见 application-cloud.yaml 文件头注释）
+# 可选：REDIS_PORT、REDIS_PASSWORD；SPRING_PROFILES_ACTIVE 默认 local,cloud（控制台若写不下逗号可用方式②）
 
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
