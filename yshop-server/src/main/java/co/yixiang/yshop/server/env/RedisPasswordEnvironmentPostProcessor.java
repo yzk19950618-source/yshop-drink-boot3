@@ -2,6 +2,7 @@ package co.yixiang.yshop.server.env;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
@@ -13,9 +14,14 @@ import java.util.Map;
  * <p>避免 YAML 中 {@code password: ${REDIS_PASSWORD:}} 在无环境变量时变成空字符串，
  * Redisson 仍发 AUTH，而免密 Redis 返回 {@code ERR AUTH ... without any password configured}。
  */
-public class RedisPasswordEnvironmentPostProcessor implements EnvironmentPostProcessor {
+public class RedisPasswordEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     static final String PROPERTY_SOURCE_NAME = "yshopRedisPasswordFromEnv";
+
+    @Override
+    public int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE;
+    }
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
