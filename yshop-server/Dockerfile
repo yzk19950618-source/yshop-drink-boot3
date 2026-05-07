@@ -12,8 +12,8 @@ COPY target/yshop-server.jar app.jar
 ENV TZ=Asia/Shanghai
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 ENV SPRING_PROFILES_ACTIVE=local,cloud
-ENV PORT=48081
+ENV PORT=8080
 
-EXPOSE 48081
+EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar --server.port=${PORT}"]
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar --spring.profiles.active=local,cloud --server.port=${PORT}"]

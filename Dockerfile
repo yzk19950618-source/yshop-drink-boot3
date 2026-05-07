@@ -23,10 +23,10 @@ COPY --from=builder /build/yshop-server/target/yshop-server.jar app.jar
 ENV TZ=Asia/Shanghai
 ENV JAVA_OPTS="-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 ENV SPRING_PROFILES_ACTIVE=local,cloud
-# 与微信云托管未注入 PORT 时的本地习惯端口一致；云上以平台注入为准
-ENV PORT=48081
+# 微信云托管常见监听 8080；平台注入 PORT 时仍优先生效（命令行覆盖 ENV）
+ENV PORT=8080
 
-EXPOSE 48081
+EXPOSE 8080
 
-# 命令行 server.port 优先于配置文件，兼容云托管 PORT
-ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar --server.port=${PORT}"]
+# 命令行显式激活 cloud，避免控制台未继承镜像 ENV 时仍只用 local（会连 127.0.0.1）
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar /app/app.jar --spring.profiles.active=local,cloud --server.port=${PORT}"]

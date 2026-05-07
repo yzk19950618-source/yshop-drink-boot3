@@ -1,0 +1,43 @@
+云 MySQL 执行顺序说明（yshop-drink-boot3 仓库）
+================================================
+
+一、与本项目相关的 SQL 文件位置
+------------------------------
+sql/00-create-database-utf8mb4.sql     仅创建数据库 yixiang-drink-open（utf8mb4）
+sql/yixiang-drink-open.sql             全量建表 + 结构 + 种子数据（主脚本，体积大）
+sql/repair-system-dictionary-utf8mb4.sql
+sql/repair-system-org-display-utf8mb4.sql
+sql/repair-yshop-service-names-utf8mb4.sql
+sql/repair-mall-drink-extra-dict.sql
+sql/repair-mall-drink-extra-dict-bbq-only-group.sql
+sql/update-shop-product-images-from-static.sql
+
+以下仅供单元测试 / H2，勿在云 MySQL 当全量初始化使用：
+yshop-module-system/yshop-module-system-biz/src/test/resources/sql/create_tables.sql
+yshop-module-system/yshop-module-system-biz/src/test/resources/sql/clean.sql
+yshop-module-member/yshop-module-member-biz/src/test/resources/sql/create_tables.sql
+yshop-module-member/yshop-module-member-biz/src/test/resources/sql/clean.sql
+
+
+二、云环境推荐执行顺序（新库从零开始）
+----------------------------------
+客户端统一建议加：--default-character-set=utf8mb4
+
+步骤 1 — 建库（在「未指定库名」下执行，或任意库下执行均可）
+  mysql -h <云MySQL主机> -P 3306 -u root -p --default-character-set=utf8mb4 < sql/00-create-database-utf8mb4.sql
+
+步骤 2 — 导入全量结构及数据（指定库名 yixiang-drink-open）
+  mysql -h <云MySQL主机> -P 3306 -u root -p --default-character-set=utf8mb4 yixiang-drink-open < sql/yixiang-drink-open.sql
+
+说明：yixiang-drink-open.sql 内含 DROP TABLE / CREATE TABLE / INSERT，不包含 CREATE DATABASE；
+      须先完成步骤 1，或在步骤 2 前手动建好同名库。
+
+步骤 3 — 仅在遇到对应问题时再执行（会改数据，执行前请备份）
+  字典乱码等：repair-system-dictionary-utf8mb4.sql（会清空并重灌字典相关表数据，见文件头注释）
+  其它 repair-*.sql、update-*.sql：按需阅读文件头说明后执行
+
+
+三、与微信云托管环境变量的关系
+----------------------------
+application-cloud.yaml 默认库名：yixiang-drink-open
+若云上 MYSQL_DATABASE 使用其它名字，请把 00-create-database 与导入命令中的库名改成一致。
