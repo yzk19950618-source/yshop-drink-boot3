@@ -23,6 +23,7 @@ import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.common.redis.RedisTemplateWxRedisOps;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.result.WxMpQrCodeTicket;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -80,10 +81,15 @@ public class MpAccountServiceImpl implements MpAccountService {
             try {
                 accounts = mpAccountMapper.selectList();
             } catch (Throwable ex) {
-                if (!ex.getMessage().contains("doesn't exist")) {
+                String msg = ex.getMessage() != null ? ex.getMessage() : "";
+                if (msg.contains("doesn't exist")) {
+                    log.error("[微信公众号 yshop-module-mp - 表结构未导入][参考 https://www.yixiang.co/mp/build/ 开启]");
+                } else if (isTransientDatabaseFailure(ex)) {
+                    // 云托管跨网 / DNS / 超时等导致首次查询失败时不阻塞整站启动，由 refreshLocalCache 定时重试
+                    log.warn("[initLocalCache][数据库暂时不可用，跳过公众号账号缓存加载，约 60s 内定时任务将重试] {}", msg);
+                } else {
                     throw ex;
                 }
-                log.error("[微信公众号 yshop-module-mp - 表结构未导入][参考 https://www.yixiang.co/mp/build/ 开启]");
             }
             log.info("[initLocalCacheIfUpdate][缓存公众号账号，数量为:{}]", accounts.size());
 
@@ -231,6 +237,22 @@ public class MpAccountServiceImpl implements MpAccountService {
         } catch (WxErrorException e) {
             throw exception(ErrorCodeConstants.ACCOUNT_CLEAR_QUOTA_FAIL, e.getError().getErrorMsg());
         }
+    }
+
+    /**
+     * 云环境偶发断连、跨地域高延迟等会触发 MyBatis 包装后的瞬时异常，首次启动不应因此失败。
+     */
+    private static boolean isTransientDatabaseFailure(Throwable ex) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof TransientDataAccessException) {
+                return true;
+            }
+            String m = t.getMessage();
+            if (m != null && m.contains("Communications link failure")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

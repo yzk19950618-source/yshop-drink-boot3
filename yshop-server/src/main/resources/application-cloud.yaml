@@ -22,12 +22,12 @@ spring:
     dynamic:
       datasource:
         master:
-          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:yixiang-drink-open}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:yixiang-drink-open}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8&connectTimeout=15000&socketTimeout=60000
           username: ${MYSQL_USERNAME:root}
           password: ${MYSQL_PASSWORD:root}
         slave:
           lazy: true
-          url: jdbc:mysql://${MYSQL_SLAVE_HOST:${MYSQL_HOST:127.0.0.1}}:${MYSQL_SLAVE_PORT:${MYSQL_PORT:3306}}/${MYSQL_SLAVE_DATABASE:${MYSQL_DATABASE:yixiang-drink-open}}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8
+          url: jdbc:mysql://${MYSQL_SLAVE_HOST:${MYSQL_HOST:127.0.0.1}}:${MYSQL_SLAVE_PORT:${MYSQL_PORT:3306}}/${MYSQL_SLAVE_DATABASE:${MYSQL_DATABASE:yixiang-drink-open}}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8&connectTimeout=15000&socketTimeout=60000
           username: ${MYSQL_SLAVE_USERNAME:${MYSQL_USERNAME:root}}
           password: ${MYSQL_SLAVE_PASSWORD:${MYSQL_PASSWORD:root}}
   data:
