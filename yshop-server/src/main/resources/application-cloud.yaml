@@ -49,5 +49,5 @@ yshop:
   pay:
     weixin-mock-enabled: ${YSHOP_PAY_WEIXIN_MOCK_ENABLED:false}
   captcha:
-    enable: ${YSHOP_CAPTCHA_ENABLE:true}
+    enable: ${YSHOP_CAPTCHA_ENABLE:false}
   h5: ${YSHOP_H5_BASE:http://localhost:80}
