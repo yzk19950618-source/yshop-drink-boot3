@@ -1,0 +1,35 @@
+# 容器 / 微信云托管：与 local 组合使用（SPRING_PROFILES_ACTIVE=local,cloud）
+# 端口：云托管注入 PORT；本地容器未注入时回落到 48081
+# 中间件：通过环境变量指向云数据库、云 Redis（勿在仓库中写死生产密码）
+
+server:
+  port: ${PORT:48081}
+
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:yixiang-drink-open}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
+        slave:
+          lazy: true
+          url: jdbc:mysql://${MYSQL_SLAVE_HOST:${MYSQL_HOST:127.0.0.1}}:${MYSQL_SLAVE_PORT:${MYSQL_PORT:3306}}/${MYSQL_SLAVE_DATABASE:${MYSQL_DATABASE:yixiang-drink-open}}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&useUnicode=true&characterEncoding=UTF-8
+          username: ${MYSQL_SLAVE_USERNAME:${MYSQL_USERNAME:root}}
+          password: ${MYSQL_SLAVE_PASSWORD:${MYSQL_PASSWORD:root}}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
+
+yshop:
+  security:
+    mock-enable: ${YSHOP_SECURITY_MOCK_ENABLE:false}
+  pay:
+    weixin-mock-enabled: ${YSHOP_PAY_WEIXIN_MOCK_ENABLED:false}
+  captcha:
+    enable: ${YSHOP_CAPTCHA_ENABLE:true}
+  h5: ${YSHOP_H5_BASE:http://localhost:80}

@@ -1,0 +1,13 @@
+# Git / IDE
+.git
+.gitignore
+.idea
+*.iml
+.vscode
+
+# Maven 构建产物（镜像内由 mvn package 生成）
+**/target/
+
+# 日志与临时文件
+*.log
+*.tmp
