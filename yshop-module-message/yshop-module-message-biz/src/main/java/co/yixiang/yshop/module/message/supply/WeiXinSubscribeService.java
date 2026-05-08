@@ -92,7 +92,7 @@ public class WeiXinSubscribeService {
             map.put("time3",simpleDateFormat.format(new Date()));
             //下单门店
             map.put("thing4",shopName);
-            map.put("thing5","意向点餐系统为您服务！");
+            map.put("thing5","吉林小串点餐系统为您服务！");
             String tempId = this.getTempId(WechatTempateEnum.PAY_SUCCESS.getValue());
             if(StrUtil.isNotBlank(tempId)) {
                 this.sendSubscribeMsg( openid,tempId, "/pages/components/pages/orders/detail?id="+orderId,map);

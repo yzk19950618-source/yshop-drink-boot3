@@ -261,3 +261,13 @@ debug: false
 jeecg:
   jmreport:
     saas-mode: tenant
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info   # 关键：确保 health 端点被暴露
+  endpoint:
+    health:
+      show-details: always     # 推荐开启，方便调试
+      probes:
+        enabled: true          # 推荐开启，适配云平台探针
