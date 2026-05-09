@@ -180,6 +180,68 @@ def uniq(pid):
     return hashlib.md5(f"yshop-sku-{pid}".encode()).hexdigest()
 
 
+def uniq_sku_pid_spice(pid, spice_label):
+    return hashlib.md5(f"yshop-sku-{pid}-{spice_label}".encode()).hexdigest()
+
+
+# 与后端 StoreProductAttrServiceImpl + StrUtils.compareTo(Locale.CHINESE) 排序一致
+SPICY_LEVELS = ("不辣", "微辣", "中辣", "特辣")
+SPICY_SKU_STRING = {
+    "不辣": "不辣,默认",
+    "微辣": "默认,微辣",
+    "中辣": "默认,中辣",
+    "特辣": "默认,特辣",
+}
+
+
+def attr_result_json_multi(price, placeholder_img=""):
+    """烧烤类：规格=默认 + 辣度四档，四个 SKU 同价。"""
+    pr = float(price)
+    obj = {
+        "attr": [
+            {
+                "attrHidden": "",
+                "detail": ["默认"],
+                "detailValue": "",
+                "value": "规格",
+            },
+            {
+                "attrHidden": "",
+                "detail": list(SPICY_LEVELS),
+                "detailValue": "",
+                "value": "辣度",
+            },
+        ],
+        "value": [],
+    }
+    for sp in SPICY_LEVELS:
+        obj["value"].append(
+            {
+                "barCode": "",
+                "brokerage": 0.0,
+                "brokerageTwo": 0.0,
+                "cost": pr,
+                "detail": {"规格": "默认", "辣度": sp},
+                "integral": 0,
+                "otPrice": pr,
+                "pic": placeholder_img,
+                "pinkPrice": 0.0,
+                "pinkStock": 0,
+                "price": pr,
+                "seckillPrice": 0.0,
+                "seckillStock": 0,
+                "sku": "",
+                "stock": 9999,
+                "value1": "默认",
+                "value2": sp,
+                "volume": 0.0,
+                "weight": 0.0,
+            }
+        )
+    j = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    return esc_sql(j)
+
+
 def attr_result_json(price, placeholder_img=""):
     """Single-SKU JSON aligned with demo product id=18 style."""
     pr = float(price)
@@ -227,7 +289,7 @@ ap = OUT.append
 ap("-- =====================================================================")
 ap("-- 吉林小串：清空门店/商品相关演示数据并导入菜单（MySQL）")
 ap("-- 执行前请备份数据库。按需修改以下会话变量：")
-ap("-- 若库中无表 yshop_store_cart，请注释掉下文 DELETE FROM yshop_store_cart。")
+ap("-- 本库无 yshop_store_cart（与 yixiang-drink-open.sql 建表一致），不再执行购物车表 DELETE。")
 ap("-- =====================================================================")
 ap("SET NAMES utf8mb4;")
 ap("SET @tenant_id := 1;")
@@ -244,16 +306,13 @@ ap("DELETE FROM yshop_store_order_cart_info WHERE 1=1;")
 ap("DELETE FROM yshop_store_order WHERE 1=1;")
 ap("DELETE FROM yshop_order_number WHERE 1=1;")
 ap("")
-ap("-- ----- 购物车 -----")
-ap("DELETE FROM yshop_store_cart WHERE 1=1;")
-ap("")
 ap("-- ----- 商品从表 -----")
 ap("DELETE FROM yshop_store_product_attr_value WHERE 1=1;")
 ap("DELETE FROM yshop_store_product_attr WHERE 1=1;")
 ap("DELETE FROM yshop_store_product_attr_result WHERE 1=1;")
 ap("DELETE FROM yshop_store_product_relation WHERE 1=1;")
-ap("-- 若存在评论表则清空")
-ap("DELETE FROM yshop_store_product_reply WHERE 1=1;")
+ap("-- 本库若存在 yshop_store_product_reply 可手工清空；外网部分仅按 yixiang-drink-open 子集初始化时无此表，")
+ap("-- 执行 DELETE 会 1146，故不在此脚本中删除该表。")
 ap("")
 ap("-- ----- 商品与分类 -----")
 ap("DELETE FROM yshop_store_product WHERE 1=1;")
@@ -324,16 +383,18 @@ for cid, sort_order, cname, cdesc in CATEGORIES:
     )
 
 ap("")
-ap("-- ----- 商品（单规格 spec_type=0） -----")
+ap("-- ----- 商品：肉类/成把/鱼/肠/素菜 为双规格（规格+辣度，spec_type=1）；其余单规格（spec_type=0） -----")
 PID_START = 30001
 pid = PID_START
-attr_id_base = 800000
 res_id_base = 810000
-val_id_base = 820000
+attr_cur = 800000
+val_cur = 820000
 
 for idx, (cat_i, pname, price, unit, pdesc) in enumerate(PRODUCTS):
     pid_current = pid + idx
     cate_str = str(CAT_IDS[cat_i])
+    is_spicy = cat_i in (MEAT, BUNDLE, FISH, SAUSAGE, VEG)
+    spec_type = 1 if is_spicy else 0
     sort_in_cat = sum(1 for x in PRODUCTS[: idx + 1] if x[0] == cat_i)
     store_info = pname[: min(256, len(pname))]
     keyword = pname[: min(256, len(pname))]
@@ -352,41 +413,70 @@ for idx, (cat_i, pname, price, unit, pdesc) in enumerate(PRODUCTS):
         f"{esc_sql(cate_str)}, {price:.2f}, 0.00, {price:.2f}, 0.00, {esc_sql(unit)}, {sort_in_cat}, 0, 9999, 1, "
         f"0, 0, 0, 0, {desc_sql}, '1', {esc_sql(NOW)}, {esc_sql(NOW)}, '1', "
         f"0, b'0', 0, NULL, {price:.2f}, 0, NULL, 0, 100, 0, "
-        f"'', 0, 0, 0, 0, 0, @tenant_id"
+        f"'', 0, 0, {spec_type}, 0, 0, @tenant_id"
         f");"
     )
 
-    aid = attr_id_base + idx
     rid = res_id_base + idx
-    vid = val_id_base + idx
-    u = uniq(pid_current)
 
-    ap(
-        f"INSERT INTO yshop_store_product_attr (id, product_id, attr_name, attr_values) VALUES "
-        f"({aid}, {pid_current}, '规格', '默认');"
-    )
-    ap(
-        f"INSERT INTO yshop_store_product_attr_result (id, product_id, result, change_time) VALUES "
-        f"({rid}, {pid_current}, {attr_result_json(price)}, {esc_sql(NOW)});"
-    )
-    ap(
-        f"INSERT INTO yshop_store_product_attr_value ("
-        f"id, product_id, sku, stock, sales, price, image, `unique`, cost, bar_code, ot_price, "
-        f"weight, volume, brokerage, brokerage_two, pink_price, pink_stock, seckill_price, seckill_stock, integral"
-        f") VALUES ("
-        f"{vid}, {pid_current}, '默认', 9999, 0, {price:.2f}, @placeholder_img, {esc_sql(u)}, {price:.2f}, '', "
-        f"{price:.2f}, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 0.00, 0, 0"
-        f");"
-    )
+    if is_spicy:
+        a1, a2 = attr_cur, attr_cur + 1
+        attr_cur += 2
+        ap(
+            f"INSERT INTO yshop_store_product_attr (id, product_id, attr_name, attr_values) VALUES "
+            f"({a1}, {pid_current}, '规格', '默认');"
+        )
+        ap(
+            f"INSERT INTO yshop_store_product_attr (id, product_id, attr_name, attr_values) VALUES "
+            f"({a2}, {pid_current}, '辣度', '不辣,微辣,中辣,特辣');"
+        )
+        ap(
+            f"INSERT INTO yshop_store_product_attr_result (id, product_id, result, change_time) VALUES "
+            f"({rid}, {pid_current}, {attr_result_json_multi(price)}, {esc_sql(NOW)});"
+        )
+        for sp in SPICY_LEVELS:
+            sku_s = SPICY_SKU_STRING[sp]
+            u = uniq_sku_pid_spice(pid_current, sp)
+            ap(
+                f"INSERT INTO yshop_store_product_attr_value ("
+                f"id, product_id, sku, stock, sales, price, image, `unique`, cost, bar_code, ot_price, "
+                f"weight, volume, brokerage, brokerage_two, pink_price, pink_stock, seckill_price, seckill_stock, integral"
+                f") VALUES ("
+                f"{val_cur}, {pid_current}, {esc_sql(sku_s)}, 9999, 0, {price:.2f}, @placeholder_img, {esc_sql(u)}, "
+                f"{price:.2f}, '', {price:.2f}, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 0.00, 0, 0"
+                f");"
+            )
+            val_cur += 1
+    else:
+        a1 = attr_cur
+        attr_cur += 1
+        u = uniq(pid_current)
+        ap(
+            f"INSERT INTO yshop_store_product_attr (id, product_id, attr_name, attr_values) VALUES "
+            f"({a1}, {pid_current}, '规格', '默认');"
+        )
+        ap(
+            f"INSERT INTO yshop_store_product_attr_result (id, product_id, result, change_time) VALUES "
+            f"({rid}, {pid_current}, {attr_result_json(price)}, {esc_sql(NOW)});"
+        )
+        ap(
+            f"INSERT INTO yshop_store_product_attr_value ("
+            f"id, product_id, sku, stock, sales, price, image, `unique`, cost, bar_code, ot_price, "
+            f"weight, volume, brokerage, brokerage_two, pink_price, pink_stock, seckill_price, seckill_stock, integral"
+            f") VALUES ("
+            f"{val_cur}, {pid_current}, '默认', 9999, 0, {price:.2f}, @placeholder_img, {esc_sql(u)}, {price:.2f}, '', "
+            f"{price:.2f}, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 0.00, 0, 0"
+            f");"
+        )
+        val_cur += 1
 
 next_pid = PID_START + len(PRODUCTS)
-n = len(PRODUCTS)
 ap("")
 ap(f"ALTER TABLE yshop_store_product AUTO_INCREMENT = {next_pid};")
 ap("ALTER TABLE yshop_store_product_category AUTO_INCREMENT = 9010;")
-ap(f"ALTER TABLE yshop_store_product_attr AUTO_INCREMENT = {attr_id_base + n};")
-ap(f"ALTER TABLE yshop_store_product_attr_result AUTO_INCREMENT = {res_id_base + n};")
-ap(f"ALTER TABLE yshop_store_product_attr_value AUTO_INCREMENT = {val_id_base + n};")
+ap(f"ALTER TABLE yshop_store_product_attr AUTO_INCREMENT = {attr_cur};")
+ap(f"ALTER TABLE yshop_store_product_attr_result AUTO_INCREMENT = {res_id_base + len(PRODUCTS)};")
+ap(f"ALTER TABLE yshop_store_product_attr_value AUTO_INCREMENT = {val_cur};")
 
 ap("")
 ap("COMMIT;")

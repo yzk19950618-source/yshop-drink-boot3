@@ -1,6 +1,10 @@
 # yshop-drink-boot3 — 微信云托管 / 通用容器部署
 # 构建：在 yshop-drink-boot3 仓库根目录执行 docker build -t yshop-server .
-# 云托管：构建目录选仓库根；容器端口与「服务设置」中的监听端口一致（默认常用 8080，平台会注入 PORT）
+#
+# 微信云托管「部署失败 / Readiness:Liveness probe failed dial tcp :80 connection refused」：
+#   控制台「容器端口」与健康检查端口必须与进程监听端口一致。本镜像默认监听 8080（ENV PORT=8080）。
+#   若控制台误填为 80，探针会连 80 而应用开在 8080 → connection refused。
+#   请在服务设置中将容器端口、HTTP 路径检查或 TCP 检查端口一律改为 8080；可选路径 /actuator/health
 #
 # 必配（二选一）：
 #   ① cloud 生效时：MYSQL_HOST、MYSQL_PORT、MYSQL_DATABASE、MYSQL_USERNAME、MYSQL_PASSWORD、REDIS_HOST
